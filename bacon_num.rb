@@ -83,7 +83,7 @@ class OracleOfBacon
       @type = :error
       @data = 'Unauthorized access'
     end
-
+  
     def parse_graph_response
       @type = :graph
       @data = @doc.text
