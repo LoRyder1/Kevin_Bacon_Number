@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'neography'
 
+
 def create_person(name)
   Neography::Node.create("name" => name)
 end

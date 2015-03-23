@@ -102,3 +102,6 @@ class OracleOfBacon
   end
 end
 
+oob = OracleOfBacon.new()
+p oob
+
