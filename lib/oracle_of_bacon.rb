@@ -28,10 +28,10 @@ class OracleOfBacon
     errors.add(:from, "From cannot be the same as To") if @from == @to
   end
 
-  def initialize(api_key='38b99ce9ec87', from="Kevin Bacon", to="Kevin Bacon")
-    @from = from
-    @to = to
-    @api_key = api_key
+  def initialize(options={})
+    @from = options[:from] || "Kevin Bacon"
+    @to = options[:to] || "Kevin Bacon"
+    @api_key = options[:api_key] || "38b99ce9ec87"
     @errors = ActiveModel::Errors.new(self)
   end
 
@@ -44,15 +44,23 @@ class OracleOfBacon
       Net::ProtocolError => e
       # convert all of these into a generic OracleOfBacon::NetworkError,
       #  but keep the original error message
-      # your code here
+      raise OracleOfBacon::NetworkError
     end
-    # your code here: create the OracleOfBacon::Response object
+    OracleOfBacon::Response.new(xml)
   end
 
   def make_uri_from_arguments
-    # your code here: set the @uri attribute to properly-escaped URI
-    #   constructed from the @from, @to, @api_key arguments
-    # @uri =
+    # example: "oracleofbacon.org/cgi-bin/xml?p=my_key&a=Kevin+Bacon&b=Laurence+Olivier"
+    params = {}
+    params["p"] = @api_key
+    params["a"] = @from
+    params["b"] = @to
+
+    query = URI.encode_www_form(params)
+    host = 'oracleofbacon.org'
+    path = '/cgi-bin/xml'
+
+    @uri = URI::HTTP.build([nil, host, nil, path, query, nil]).to_s
   end
       
   class Response
@@ -66,6 +74,7 @@ class OracleOfBacon
     private
 
     def parse_response
+      # @doc
       if ! @doc.xpath('/error').empty?
         parse_error_response
       elsif ! @doc.xpath('/link').empty?
@@ -73,26 +82,28 @@ class OracleOfBacon
       elsif ! @doc.xpath('/spellcheck').empty?
         parse_spellcheck_response  
       else
-        parse_unknown_response
-      # your code here: 'elsif' clauses to handle other responses
-      # for responses not matching the 3 basic types, the Response
-      # object should have type 'unknown' and data 'unknown response'         
+        parse_unknown_response       
+        @type = :unknown
+        @data = 'unknown response type'
       end
     end
+    
     def parse_error_response
       @type = :error
       @data = 'Unauthorized access'
     end
-  
+
     def parse_graph_response
       @type = :graph
-      @data = @doc.text
+      actor_arr = @doc.xpath('//actor').map{|x| x.text}
+      movie_arr = @doc.xpath('//movie').map {|x| x.text}
+      @data = actor_arr.zip(movie_arr).flatten.compact
     end
 
     def parse_spellcheck_response
       @type = :spellcheck
-      arr = []
-      @data = arr
+      match_arr = @doc.xpath('//match').map{|x| x.text}
+      @data = match_arr.flatten.compact
     end
 
     def parse_unknown_response
@@ -102,6 +113,10 @@ class OracleOfBacon
   end
 end
 
-oob = OracleOfBacon.new()
-p oob
+# oob = OracleOfBacon.new(api_key: "Ian Mckellan")
+# p oob.api_key
+# oob.find_connections
+# p oob.uri
+
+# p oob
 
